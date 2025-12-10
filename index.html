@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>👁️ QUANTUM AI by Niko | Agent Biométrique Clinique</title> 
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.15.0/dist/tf-backend-wasm.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.2/dist/face-landmarks-detection.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --color-void: #0a0a0f;
+            --color-surface: rgba(18, 18, 25, 0.98);
+            --color-primary: #00f4ff;
+            --color-secondary: #bc13fe;
+            --color-success: #00ff88;
+            --color-warning: #ffcc00;
+            --color-danger: #ff5555;
+            
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--color-void) 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            padding: 10px;
+            overflow-x: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .app-container {
+            width: 100%;
+            max-width: 1400px;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: var(--color-surface);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 244, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 244, 255, 0.1);
+        }
+        
+        .header h1 {
+            font-size: clamp(1.2em, 5vw, 2.5em);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #888;
+            font-size: clamp(0.8em, 3vw, 1.1em);
+        }
+        
+        .device-info {
+            background: rgba(0, 244, 255, 0.1);
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        @media (min-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (min-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1.5fr 1fr;
+            }
+        }
+        
+        .video-container {
+            position: relative;
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(0, 244, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 244, 255, 0.1);
+        }
+        
+        .video-container h2 {
+            font-size: 1.2em;
+            margin-bottom: 12px;
+            color: var(--color-primary);
+        }
+        
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        /* CORRECTION 1: playsinline dans le CSS au cas où */
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transform: scaleX(-1);
+        }
+        
+        #canvasElement {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            transform: scaleX(-1);
+        }
+        
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            font-size: clamp(0.9em, 3vw, 1em);
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: var(--font-sans);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: #000;
+        }
+        
+        .btn-start:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 16px rgba(0, 244, 255, 0.4);
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, var(--color-danger), #ff0066);
+            color: #fff;
+        }
+        
+        .btn-stop:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 16px rgba(255, 85, 85, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        .results-container {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(0, 244, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 244, 255, 0.1);
+        }
+        
+        .results-container h2 {
+            color: var(--color-primary);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        @media (min-width: 480px) {
+            .metrics {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        .metric-card {
+            background: rgba(0, 244, 255, 0.05);
+            border: 1px solid rgba(0, 244, 255, 0.2);
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: clamp(0.7em, 2vw, 0.85em);
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .metric-value {
+            font-size: clamp(1.5em, 4vw, 2em);
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--color-primary);
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 12px;
+            font-size: clamp(0.85em, 2.5vw, 0.95em);
+            line-height: 1.5;
+        }
+        
+        .alert-info {
+            background: rgba(0, 244, 255, 0.1);
+            border: 1px solid var(--color-primary);
+            color: var(--color-primary);
+        }
+        
+        .alert-success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--color-success);
+            color: var(--color-success);
+        }
+        
+        .alert-warning {
+            background: rgba(255, 204, 0, 0.1);
+            border: 1px solid var(--color-warning);
+            color: var(--color-warning);
+        }
+        
+        .alert-danger {
+            background: rgba(255, 85, 85, 0.1);
+            border: 1px solid var(--color-danger);
+            color: var(--color-danger);
+        }
+        
+        .chart-container {
+            width: 100%;
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(0, 244, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 244, 255, 0.1);
+            margin-top: 15px;
+        }
+        
+        .chart-container h3 {
+            color: var(--color-primary);
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+        
+        #fatigueChart {
+            max-height: 250px;
+            width: 100% !important;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-active { background: var(--color-success); }
+        .status-inactive { background: var(--color-danger); }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--color-primary);
+        }
+        
+        .spinner {
+            border: 3px solid rgba(0, 244, 255, 0.1);
+            border-top: 3px solid var(--color-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 15px auto;
+        }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>👁️ QUANTUM AI by Niko</h1>
+            <p>Agent Biométrique Clinique • Détection de Fatigue en Temps Réel</p>
+            <div class="device-info" id="deviceInfo"></div>
+        </div>
+
+        <div class="main-container">
+            <div class="video-container">
+                <h2>📹 Flux Vidéo en Direct</h2>
+                <div class="video-wrapper">
+                    <video id="videoElement" autoplay playsinline webkit-playsinline muted></video>
+                    <canvas id="canvasElement"></canvas>
+                </div>
+                <div class="controls">
+                    <button id="cameraButton" class="btn btn-start">
+                        <span class="status-indicator status-inactive"></span>
+                        1. Activer la Caméra
+                    </button>
+                    <button id="analysisButton" class="btn btn-start" disabled>
+                        2. Démarrer l'Analyse IA
+                    </button>
+                </div>
+            </div>
+
+            <div class="results-container">
+                <h2>📊 Métriques Biométriques</h2>
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">EAR Score</div>
+                        <div class="metric-value" id="earValue">0.00</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Fatigue</div>
+                        <div class="metric-value" id="fatigueValue">0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Pouls (BPM)</div>
+                        <div class="metric-value" id="heartRateValue">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Clignements</div>
+                        <div class="metric-value" id="blinkValue">0</div>
+                    </div>
+                </div>
+                <div id="outputZone" class="alert alert-info">
+                    ℹ️ Initialisation...
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>📈 Évolution de la Fatigue</h3>
+            <canvas id="fatigueChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // CONFIGURATION & DÉTECTION
+        // ============================================================================
+        const DEVICE_INFO = {
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
+            hasWASM: (() => {
+                try {
+                    if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
+                        const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+                        return module instanceof WebAssembly.Module;
+                    }
+                } catch (e) { return false; }
+                return false;
+            })()
+        };
+
+        const PERFORMANCE_CONFIG = {
+            maxFaces: 1,
+            refineLandmarks: true, // Peut être mis à false si le téléphone est très vieux
+            analysisInterval: DEVICE_INFO.isMobile ? 300 : 200,
+            chartMaxPoints: DEVICE_INFO.isMobile ? 30 : 50
+        };
+
+        // VARIABLES GLOBALES
+        let videoElement, canvasElement, ctx;
+        let detector = null;
+        let cameraActive = false;
+        let isAnalysisRunning = false;
+        let analysisIntervalId = null;
+        let analysisTimeoutId = null;
+        let latestHeartRate = 0;
+        let blinkCount = 0;
+        let previousEAR = 0;
+        const analysisSessionData = [];
+        const fatigueHistory = [];
+        let fatigueChart = null;
+
+        // ============================================================================
+        // LOGIQUE MÉTIER (EAR, PPG, FATIGUE)
+        // ============================================================================
+        const CLINICAL_KNOWLEDGE_BASE = [
+            { id: 'fatigue_somnolence', name: 'Fatigue Sévère', fatigue_threshold: 70, heart_range: [50, 75], persistence_frames: 15, clinical_message: '⚠️ ALERTE : Somnolence.', recommendation: 'Repos immédiat requis.' },
+            { id: 'fatigue_moderee', name: 'Fatigue Modérée', fatigue_threshold: 50, heart_range: [60, 90], persistence_frames: 10, clinical_message: '⚠️ Fatigue modérée.', recommendation: 'Pause conseillée.' },
+            { id: 'etat_normal', name: 'État Normal', fatigue_threshold: 0, heart_range: [65, 100], persistence_frames: 5, clinical_message: '✅ État normal.', recommendation: 'Tout va bien.' }
+        ];
+
+        function calculateEAR(eye) {
+            if (!eye || eye.length < 6) return 0;
+            const p1=eye[1], p2=eye[5], p3=eye[2], p4=eye[4], p5=eye[0], p6=eye[3];
+            const dist = (p1, p2) => Math.sqrt(Math.pow(p1[0]-p2[0], 2) + Math.pow(p1[1]-p2[1], 2));
+            const dV1 = dist(p1, p2);
+            const dV2 = dist(p3, p4);
+            const dH = dist(p5, p6);
+            return dH === 0 ? 0 : (dV1 + dV2) / (2.0 * dH);
+        }
+
+        function extractEyeLandmarks(keypoints) {
+            return {
+                leftEye: [33, 160, 158, 133, 153, 144].map(i => [keypoints[i].x, keypoints[i].y]),
+                rightEye: [362, 385, 387, 263, 373, 380].map(i => [keypoints[i].x, keypoints[i].y])
+            };
+        }
+
+        class PPGProcessor {
+            static colorHistory = [];
+            static lastHeartBeat = 70;
+            static analyze(ctx, width, height) {
+                try {
+                    const sampleSize = 20;
+                    const data = ctx.getImageData(Math.floor(width/2)-10, Math.floor(height/2)-10, 20, 20).data;
+                    let greenSum = 0;
+                    for (let i=1; i<data.length; i+=4) greenSum += data[i];
+                    const greenValue = greenSum / 400;
+
+                    this.colorHistory.push(greenValue);
+                    if (this.colorHistory.length > 100) this.colorHistory.shift();
+                    if (this.colorHistory.length < 30) return this.lastHeartBeat;
+
+                    let peaks = 0;
+                    const mean = this.colorHistory.reduce((a,b)=>a+b,0)/this.colorHistory.length;
+                    for (let i=1; i<this.colorHistory.length-1; i++) {
+                        if (this.colorHistory[i] > this.colorHistory[i-1] && this.colorHistory[i] > this.colorHistory[i+1] && this.colorHistory[i] > mean) peaks++;
+                    }
+                    const hr = Math.round((peaks/this.colorHistory.length)*60*30);
+                    return this.lastHeartBeat = Math.max(45, Math.min(150, hr));
+                } catch(e) { return this.lastHeartBeat; }
+            }
+        }
+
+        function computeFatigueScore(avgEAR, heartRate) {
+            let earScore = avgEAR < 0.25 ? Math.min(100, ((0.25 - avgEAR) / 0.10) * 100) : 0;
+            let hrScore = (heartRate > 0 && heartRate < 65) ? Math.min(40, (65 - heartRate) * 2) : 0;
+            return Math.round(Math.min(100, earScore + hrScore));
+        }
+
+        // ============================================================================
+        // GESTION CAMÉRA & INTERFACE (CORRIGÉE)
+        // ============================================================================
+        
+        // CORRECTION 3: Lancement prioritaire de l'UI
+        async function init() {
+            videoElement = document.getElementById('videoElement');
+            canvasElement = document.getElementById('canvasElement');
+            ctx = canvasElement.getContext('2d', { willReadFrequently: true, alpha: false });
+            
+            const outputElement = document.getElementById('outputZone');
+            const analysisBtn = document.getElementById('analysisButton');
+
+            // On active les écouteurs TOUT DE SUITE
+            setupEventListeners();
+            displayDeviceInfo();
+            initChart();
+
+            outputElement.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement IA en cours...<br><small>Vous pouvez activer la caméra pendant ce temps.</small></div>';
+
+            try {
+                await tf.ready();
+                await tf.setBackend(DEVICE_INFO.hasWASM ? 'wasm' : 'webgl');
+                
+                detector = await faceLandmarksDetection.createDetector(
+                    faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh, 
+                    { runtime: 'tfjs', maxFaces: 1, refineLandmarks: PERFORMANCE_CONFIG.refineLandmarks }
+                );
+
+                console.log("✅ IA Loaded");
+                
+                if (cameraActive) {
+                    analysisBtn.disabled = false;
+                    outputElement.textContent = '✅ IA Prête. Lancez l\'analyse.';
+                    outputElement.className = 'alert alert-success';
+                } else {
+                    outputElement.textContent = '✅ IA chargée. Activez la caméra (Étape 1).';
+                    outputElement.className = 'alert alert-success';
+                }
+
+            } catch (error) {
+                console.error(error);
+                outputElement.innerHTML = `⚠️ Erreur IA: ${error.message}`;
+                outputElement.className = 'alert alert-warning';
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('cameraButton').addEventListener('click', toggleCamera);
+            document.getElementById('analysisButton').addEventListener('click', toggleAnalysis);
+        }
+
+        // CORRECTION 4: Gestion robuste de la caméra pour mobile
+        async function toggleCamera() {
+            const button = document.getElementById('cameraButton');
+            const outputElement = document.getElementById('outputZone');
+            const analysisBtn = document.getElementById('analysisButton');
+
+            if (!cameraActive) {
+                try {
+                    // Essai configuration optimale
+                    let stream;
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            video: { 
+                                facingMode: 'user', 
+                                width: { ideal: DEVICE_INFO.isMobile ? 480 : 1280 }, // Résolution sûre
+                                frameRate: { ideal: 30 }
+                            },
+                            audio: false
+                        });
+                    } catch(e) {
+                        console.warn("Mode dégradé activé");
+                        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    }
+
+                    videoElement.srcObject = stream;
+                    // Promesse de lecture explicite pour iOS
+                    await videoElement.play();
+                    
+                    resizeCanvas();
+                    cameraActive = true;
+                    
+                    button.innerHTML = '<span class="status-indicator status-active"></span>1. Désactiver';
+                    button.className = 'btn btn-stop';
+                    
+                    if (detector) {
+                        analysisBtn.disabled = false;
+                        outputElement.textContent = '✅ Caméra et IA prêtes.';
+                    } else {
+                        outputElement.textContent = '✅ Caméra active. Chargement IA...';
+                    }
+                    outputElement.className = 'alert alert-success';
+
+                } catch (error) {
+                    outputElement.innerHTML = `❌ Accès refusé : ${error.name}.<br><small>Vérifiez les permissions HTTPS/Navigateur.</small>`;
+                    outputElement.className = 'alert alert-danger';
+                }
+            } else {
+                const stream = videoElement.srcObject;
+                if(stream) stream.getTracks().forEach(t => t.stop());
+                videoElement.srcObject = null;
+                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                
+                cameraActive = false;
+                isAnalysisRunning = false;
+                clearInterval(analysisIntervalId);
+                
+                button.innerHTML = '<span class="status-indicator status-inactive"></span>1. Activer la Caméra';
+                button.className = 'btn btn-start';
+                analysisBtn.disabled = true;
+                analysisBtn.textContent = '2. Démarrer l\'Analyse IA';
+                analysisBtn.className = 'btn btn-start';
+                outputElement.textContent = '⏸️ Caméra arrêtée.';
+            }
+        }
+
+        function resizeCanvas() {
+            if (videoElement.videoWidth) {
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+            }
+        }
+
+        // ============================================================================
+        // BOUCLE D'ANALYSE
+        // ============================================================================
+        function toggleAnalysis() {
+            const btn = document.getElementById('analysisButton');
+            const output = document.getElementById('outputZone');
+            
+            if (isAnalysisRunning) {
+                // STOP
+                isAnalysisRunning = false;
+                clearInterval(analysisIntervalId);
+                clearTimeout(analysisTimeoutId);
+                btn.textContent = '2. Démarrer l\'Analyse IA';
+                btn.className = 'btn btn-start';
+                
+                // Rapport final simplifié
+                const avgFatigue = fatigueHistory.length ? (fatigueHistory.reduce((a,b)=>a+b,0)/fatigueHistory.length) : 0;
+                output.innerHTML = `🏁 <strong>Terminé</strong><br>Fatigue Moyenne: ${avgFatigue.toFixed(1)}%<br>BPM Dernier: ${latestHeartRate}`;
+                output.className = 'alert alert-info';
+                
+            } else {
+                // START
+                isAnalysisRunning = true;
+                fatigueHistory.length = 0;
+                analysisSessionData.length = 0;
+                initChart();
+                
+                btn.textContent = 'Arrêter l\'Analyse';
+                btn.className = 'btn btn-stop';
+                output.textContent = '🔄 Analyse en cours... Regardez la caméra.';
+                output.className = 'alert alert-warning';
+                
+                analysisIntervalId = setInterval(async () => {
+                    if(!detector || !videoElement.videoWidth) return;
+                    
+                    try {
+                        const faces = await detector.estimateFaces(videoElement, { flipHorizontal: false });
+                        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                        
+                        if(faces.length > 0) {
+                            const face = faces[0];
+                            // Dessin simple
+                            ctx.fillStyle = '#00f4ff';
+                            face.keypoints.forEach(kp => { ctx.beginPath(); ctx.arc(kp.x, kp.y, 1, 0, 2*Math.PI); ctx.fill(); });
+                            
+                            const eyes = extractEyeLandmarks(face.keypoints);
+                            const avgEAR = (calculateEAR(eyes.leftEye) + calculateEAR(eyes.rightEye)) / 2;
+                            
+                            // Détection Clignement
+                            if (previousEAR > 0.2 && avgEAR < 0.18) {
+                                blinkCount++;
+                                document.getElementById('blinkValue').textContent = blinkCount;
+                            }
+                            previousEAR = avgEAR;
+                            
+                            const hr = PPGProcessor.analyze(ctx, canvasElement.width, canvasElement.height);
+                            latestHeartRate = hr;
+                            
+                            const fatigue = computeFatigueScore(avgEAR, hr);
+                            fatigueHistory.push(fatigue);
+                            updateChart(fatigue);
+                            
+                            document.getElementById('earValue').textContent = avgEAR.toFixed(2);
+                            document.getElementById('fatigueValue').textContent = fatigue + '%';
+                            document.getElementById('heartRateValue').textContent = hr;
+                        }
+                    } catch(e) { console.error(e); }
+                }, PERFORMANCE_CONFIG.analysisInterval);
+                
+                // Auto-stop après 15s
+                analysisTimeoutId = setTimeout(toggleAnalysis, 15000);
+            }
+        }
+
+        // CHART.JS
+        function initChart() {
+            if (fatigueChart) fatigueChart.destroy();
+            fatigueChart = new Chart(document.getElementById('fatigueChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Fatigue', data: [], borderColor: '#00f4ff', borderWidth: 1, fill: true, backgroundColor: 'rgba(0, 244, 255, 0.1)' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 }, x: { display: false } }, plugins: { legend: { display: false } }, animation: false }
+            });
+        }
+        function updateChart(val) {
+            if(!fatigueChart) return;
+            fatigueChart.data.labels.push('');
+            fatigueChart.data.datasets[0].data.push(val);
+            if(fatigueChart.data.labels.length > PERFORMANCE_CONFIG.chartMaxPoints) {
+                fatigueChart.data.labels.shift();
+                fatigueChart.data.datasets[0].data.shift();
+            }
+            fatigueChart.update('none');
+        }
+
+        function displayDeviceInfo() {
+            const div = document.getElementById('deviceInfo');
+            div.style.display = 'block';
+            div.innerHTML = `${DEVICE_INFO.isMobile?'📱 Mobile': '💻 PC'} • ${DEVICE_INFO.isIOS?'iOS':'Autre'} • ${DEVICE_INFO.hasWASM?'⚡ WASM':'🐢 WebGL'}`;
+        }
+
+        // Lancement
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
