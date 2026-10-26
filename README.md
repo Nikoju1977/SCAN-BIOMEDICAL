@@ -1,28 +1,27 @@
-# 🧫 SCAN Biomédical
-**Studio Niko Design** — Plateforme de scan et analyse biomédicale IA.
+# SCAN Biomédical — expérience de caméra et biométrie
 
-> Vision médicale pour l'analyse d'images biomédicales — lames, cultures cellulaires, biopsies.
+**Catégorie :** prototype d'interface biométrique assistée par IA · Studio Niko Design.
 
-## ⚠️ Disclaimer
-Recherche et éducation uniquement.
+## Ce que fait réellement ce dépôt
 
-## 🛠 Stack
-`HTML` · `Pixtral-12B` · `Mistral AI`
+La page `index.html` porte le titre **« QUANTUM AI by Niko | Agent Biométrique Clinique »**. Elle présente un parcours pour **activer la caméra**, **démarrer une analyse IA**, afficher des **métriques biométriques** et visualiser une **évolution de la fatigue**.
 
-## 👤 Auteur
-**Nicolas Julienne** — [Studio Niko Design](https://github.com/Nikoju1977)
-📧 nicolasjulienne.nj@gmail.com
+Il s'agit de l'interface biométrique actuellement présente dans le dépôt, **pas d'un logiciel d'analyse histopathologique de biopsies ou de lames microscopiques**. Les anciens textes suggérant un tel périmètre ne reflétaient pas l'interface examinée.
 
----
+## Démarrage
 
-## Utilisation et statut du projet
+Depuis la racine du dépôt :
 
-**Thème :** Vision IA — expérimentation biomédicale.
+```sh
+python3 -m http.server 8000
+```
 
-Le prototype est accessible depuis `index.html` ; `icon.svg` et `manifest.json` complètent l'interface. Exécuter `python3 -m http.server 8000` à la racine pour une consultation locale.
+Ouvrir http://localhost:8000/ ; l'accès caméra exige généralement HTTPS ou localhost et l'accord de l'utilisateur. Les bibliothèques externes et les fonctions d'IA peuvent nécessiter une connexion.
 
-**Limites :** outil d'expérimentation et d'enseignement, **non validé pour l'interprétation clinique** d'images de biopsies, lames ou cultures. Les résultats IA doivent être vérifiés par des spécialistes et par des méthodes validées. Éviter toute image de patient identifiable sans cadre et consentement appropriés.
+## Confidentialité et limites
 
-**Validation :** documentation basée sur les fichiers présents ; tests fonctionnels non exécutés lors de cette mise à jour.
+**Prototype de démonstration non validé cliniquement.** Les métriques présentées par une caméra ne constituent pas des mesures physiologiques calibrées ni un diagnostic de fatigue ou de maladie. Les données vidéo ou images personnelles nécessitent une revue des flux réseau avant utilisation. Ne pas utiliser pour une décision de santé ou de sécurité.
 
-[Catalogue des projets Studio Niko Design](https://github.com/Nikoju1977).
+Ce README décrit la structure observable du projet ; il ne certifie **ni les résultats de l'IA, ni la sécurité, ni le fonctionnement sur appareils réels**.
+
+[Voir le catalogue détaillé des projets](https://github.com/Nikoju1977/Nikoju1977/blob/main/PROJECTS.md)
