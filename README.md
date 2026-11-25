@@ -10,7 +10,22 @@ Un prototype de vision par ordinateur qui explore le suivi facial et des indicat
 
 [English overview](#english-overview) · [Quickstart](#quickstart--démarrage-rapide) · [Issues](https://github.com/Nikoju1977/SCAN-BIOMEDICAL/issues)
 
-> [Insérer ici un GIF de démonstration / Insert demo GIF here]
+## Sécurité d'usage — priorité de qualification
+
+> **Ne pas utiliser pour mesurer la fréquence cardiaque, diagnostiquer une fatigue, surveiller un patient ou prendre une décision de sécurité.** Le code peut afficher 70 BPM sans signal exploitable. L'indicateur n'est pas une mesure médicale. Cette documentation ne désactive pas les fonctions trompeuses : leur retrait ou neutralisation constitue une correction prioritaire.
+
+| Vérification proposée | Critère attendu avant qualification du prototype visuel |
+| --- | --- |
+| Géométrie EAR | Avec des coordonnées synthétiques et des distances verticales 2 et 2, horizontale 10, le rapport attendu est 0,2 |
+| Repères absents ou dégénérés | Afficher une absence de mesure ; ne pas interpréter un zéro de repli comme un œil fermé |
+| Perte du suivi | Invalider les résultats précédents et signaler clairement l'indisponibilité |
+| Fréquence cardiaque et fatigue | Supprimer ou désactiver les valeurs non validées ; ne pas afficher un BPM par défaut comme une mesure |
+| Caméra | Refus explicite de permission, arrêt des pistes en fin de session |
+| Confidentialité | Vérifier les flux réseau et l'absence de conservation ou de transmission inattendue |
+
+Ces critères ne constituent pas un protocole clinique. Aucun sujet humain, test de caméra, audit réseau ou essai clinique n'a été réalisé pour cette mise à jour. Utiliser des coordonnées synthétiques pour les essais géométriques ; ne pas fournir d'images de patients.
+
+**English:** The current PPG and fatigue outputs are invalid for medical or safety use. A default heart rate may be displayed without valid physiological input. Disable misleading metrics before further demonstration. Proposed checks concern synthetic geometry, unavailable tracking, camera shutdown and privacy; they are not clinical validation.
 
 > **Prototype non qualifié.** Inspection statique du code uniquement : aucun nouveau test d'exécution, audit de sécurité, benchmark, test physique, validation industrielle ou clinique n'a été effectué pour cette révision. Utiliser des données synthétiques.
 
